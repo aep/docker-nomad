@@ -1,11 +1,9 @@
 .PHONY: bin image push release clean
 
-TAG=vancluever/nomad
+TAG=aaep/docker-nomad
 VERSION=0.5.6
 
-bin:
-	rm -rf 0.X/pkg
-	mkdir -p 0.X/pkg
+0.X/pkg/nomad:
 	docker run --rm -v $(shell pwd)/0.X/pkg:/tmp/pkg golang sh -c '\
 	apt-get update && apt-get -y install g++-multilib && \
 	go get -u github.com/hashicorp/nomad && \
@@ -15,7 +13,17 @@ bin:
 	make generate && \
 	go build --ldflags "-extldflags \"-static\"" -o /tmp/pkg/nomad'
 
-image: bin
+0.X/pkg/amazon-ecr-credential-helper:
+	docker run --rm -v $(shell pwd)/0.X/pkg:/tmp/pkg golang sh -c '\
+	apt-get update && apt-get -y install g++-multilib && \
+	mkdir -p $$GOPATH/src/github.com/awslabs/ && \
+	cd $$GOPATH/src/github.com/awslabs/ && \
+	git clone https://github.com/awslabs/amazon-ecr-credential-helper.git && \
+	cd amazon-ecr-credential-helper && \
+	make && \
+	cp bin/local/docker-credential-ecr-login /tmp/pkg/'
+
+image: 0.X/pkg/nomad 0.X/pkg/amazon-ecr-credential-helper
 	docker build --tag $(TAG):latest --tag $(TAG):$(VERSION) 0.X/
 
 push: image

@@ -34,6 +34,7 @@ RUN apk add --no-cache ca-certificates curl gnupg libcap openssl && \
 # against only LXC or glibc. The Dockerfile expects this at pkg/nomad.
 COPY pkg/nomad /bin/nomad
 
+
 # The /nomad/data dir is used by Nomad to store state. The agent will be started
 # with /nomad/config as the configuration directory so you can add additional
 # config files in that location.
@@ -54,6 +55,12 @@ EXPOSE 4648 4648/udp
 
 # HTTP is the primary interface that applications use to interact with Nomad.
 EXPOSE 4646
+
+# docker-credential-ecr-login will allow us to pull images from ecr
+COPY pkg/docker-credential-ecr-login /bin/docker-credential-ecr-login
+RUN mkdir -p ~nomad/.docker/
+RUN echo '{"credsStore": "ecr-login"}' > ~nomad/.docker/config.json
+RUN chown -R nomad:nomad ~nomad
 
 # Nomad doesn't need root privileges so we run it as the nomad user from the
 # entry point script. The entry point script also uses dumb-init as the top-level
